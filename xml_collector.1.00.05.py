@@ -9,7 +9,7 @@ from xml.etree import ElementTree
 # 2. name of the output file
 # 3. comma-separated list of tests or '*'
 # E.g.:
-# xml_collector D:\TMP\consolidate\desktop\GlobalXML.xml D:\TMP\output\new_xml.xml testC375501
+# xml_collector D:\TMP\consolidate\desktop\GlobalXML.xml D:\TMP\output\new_xml.xml testC375501,testC375502
 # xml_collector D:\TMP\consolidate\desktop\GlobalXML.xml D:\TMP\output\new_xml.xml *
 
 # ------------------------------------ global variables ------------------------------------
