@@ -1,6 +1,7 @@
 # -- coding: utf-8 --
 
 import os.path
+import platform
 import sys
 from xml.etree import ElementTree
 
@@ -11,6 +12,7 @@ from xml.etree import ElementTree
 # E.g.:
 # xml_collector D:\TMP\consolidate\desktop\GlobalXML.xml D:\TMP\output\new_xml.xml testC375501,testC375502
 # xml_collector D:\TMP\consolidate\desktop\GlobalXML.xml D:\TMP\output\new_xml.xml *
+# xml_collector D:\TMP\consolidate\desktop\GlobalXML.xml D:\TMP\output\new_xml.xml __all
 
 # ------------------------------------ global variables ------------------------------------
 global_xml_path = "global.xml"
@@ -20,6 +22,7 @@ list_of_tests = []
 collect_all_test_cases = False
 test_cases_dict = {}
 collected_tcs = []
+extended_log_output = False
 
 
 # --------------------------------------- functions ----------------------------------------
@@ -31,7 +34,7 @@ def parse_args():
             global output_file_name
             output_file_name = sys.argv[2]
             if len(sys.argv) > 3:
-                if "*" == sys.argv[3]:
+                if "*" == sys.argv[3] or "__all" == sys.argv[3]:
                     global collect_all_test_cases
                     collect_all_test_cases = True
                 else:
@@ -84,32 +87,32 @@ def look_for_tests_in_node(path_to_xml, tc_dict, node, need_to_collect_all_tcs,
                            _list_of_tests, output_prefix, _collected_tcs):
     if "test" == node.tag:
         test_name = node.attrib["name"]
-        print(output_prefix + "test name = ", test_name)
+        write_to_log(output_prefix + "test name = ", test_name)
         for class_element in node[0]:
             if "class" == class_element.tag:
                 class_name = class_element.attrib["name"]
-                print(output_prefix + "\tclass name = ", class_name)
+                write_to_log(output_prefix + "\tclass name = ", class_name)
                 for include_elem in class_element[0]:
                     if "include" == include_elem.tag:
                         test_case_name = include_elem.attrib["name"]
                         if need_to_collect_all_tcs or test_case_name in _list_of_tests:
                             # test case is found, add it to dictionary
-                            print(output_prefix + "\t\ttest = ", test_case_name, "- collected")
+                            write_to_log(output_prefix + "\t\ttest = ", test_case_name, "- collected")
                             _collected_tcs.append(test_case_name)
                             add_test_case_to_dictionary(tc_dict, test_name, class_name, test_case_name)
                         else:
-                            print(output_prefix + "\t\ttest = ", test_case_name)
-                print()
+                            write_to_log(output_prefix + "\t\ttest = ", test_case_name)
+                write_to_log()
     elif "suite-files" == node.tag:
         for suite_file_elem in node:
             if "suite-file" == suite_file_elem.tag:
                 new_prefix = output_prefix + "\t"
                 relative_path = suite_file_elem.attrib["path"].replace('\\', os.sep).replace('/', os.sep)
                 new_file_name = os.path.join(os.path.dirname(os.path.abspath(path_to_xml)), relative_path)
-                print(new_prefix + "-------------------------")
-                print(new_prefix + "Looking for in a new xml: " + new_file_name)
+                write_to_log(new_prefix + "-------------------------")
+                write_to_log(new_prefix + "Looking for in a new xml: " + new_file_name)
                 look_for_tests_in_xml(new_file_name, tc_dict, new_prefix, _collected_tcs)
-                print(new_prefix + "Search in " + new_file_name + " is completed\n")
+                write_to_log(new_prefix + "Search in " + new_file_name + " is completed\n")
 
 
 def add_test_case_to_dictionary(tc_dict, xml_test_name, xml_class_name, xml_test_case_name):
@@ -123,8 +126,8 @@ def add_test_case_to_dictionary(tc_dict, xml_test_name, xml_class_name, xml_test
 
 
 def write_test_cases_dict_to_xml():
-    print("-------------------------------------------------------------")
-    print(len(collected_tcs), "test cases were collected:", collected_tcs)
+    write_to_log("-------------------------------------------------------------")
+    write_to_log(len(collected_tcs), "test cases were collected:", collected_tcs)
     initial_prefix = "\n\t"
     xml_header = '<?xml version="1.0" encoding="UTF-8"?>\n' \
                  '<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">\n'
@@ -144,8 +147,14 @@ def write_test_cases_dict_to_xml():
 
     output_file = open(output_file_name, "w+")
     output_file.write(xml_header)
-    output_file.write(ElementTree.tostring(output_xml_tree, encoding="unicode", method="xml"))
-    print("Test cases were successfully written to the file: " + output_file_name)
+    if "Linux" == platform.system():
+        output_file.write(ElementTree.tostring(output_xml_tree, method="xml"))
+    else:
+        output_file.write(ElementTree.tostring(output_xml_tree, encoding="unicode", method="xml"))
+    if extended_log_output:
+        print("Test cases were successfully written to the file: " + output_file_name)
+    else:
+        print(len(collected_tcs), "test cases were successfully written to the file:", output_file_name)
 
 
 def create_xml_tree(xml_tree, tc_dict, initial_prefix):
@@ -178,6 +187,11 @@ def create_xml_tree(xml_tree, tc_dict, initial_prefix):
                     include_elem.tail = initial_prefix + "\t\t\t\t"
                 include_elem.set("name", test)
         index = index + 1
+
+
+def write_to_log(*strings):
+    if extended_log_output:
+        print(*strings)
 
 
 # ------------------------------------------ MAIN ------------------------------------------
