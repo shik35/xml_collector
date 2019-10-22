@@ -31,7 +31,7 @@ python_version = 0  # version of the Python
 
 # --------------------------------------- functions ----------------------------------------
 def set_variables():
-    print("Python version:", str(sys.version_info[0]) + "." + str(sys.version_info[1]))
+    print("Python version: " + str(sys.version_info[0]) + "." + str(sys.version_info[1]))
     global python_version
     python_version = sys.version_info[0] * 10 + sys.version_info[1]
 
@@ -53,12 +53,12 @@ def parse_args():
                     # map(str.strip, list_of_tests)
     print("-------------------------------------------------------------")
     print("Arguments:")
-    print("path to XML:", global_xml_path)
-    print("output file name:", output_file_name)
+    print("path to XML: " + global_xml_path)
+    print("output file name: " + output_file_name)
     if collect_all_test_cases:
         print("list of tests: all tests")
     else:
-        print("list of tests:", list_of_tests)
+        print("list of tests: " + str(list_of_tests))
 
 
 def verify_args():
@@ -167,7 +167,7 @@ def write_test_cases_dict_to_xml():
     if extended_log_output:
         print("Test cases were successfully written to the file: " + output_file_name)
     else:
-        print(len(collected_tcs), "test cases were successfully written to the file:", output_file_name)
+        print(str(len(collected_tcs)) + " test cases were successfully written to the file: " + output_file_name)
 
 
 def create_xml_tree(xml_tree, tc_dict, initial_prefix):
