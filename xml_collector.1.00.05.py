@@ -1,7 +1,6 @@
 # -- coding: utf-8 --
 
 import os.path
-import platform
 import sys
 from xml.etree import ElementTree
 
@@ -15,17 +14,28 @@ from xml.etree import ElementTree
 # xml_collector D:\TMP\consolidate\desktop\GlobalXML.xml D:\TMP\output\new_xml.xml __all
 
 # ------------------------------------ global variables ------------------------------------
-global_xml_path = "global.xml"
-output_file_name = "output.xml"
-list_of_tests = []
+global_xml_path = "global.xml"  # path to the global xml file
+output_file_name = "output.xml"  # path to the output xml file
+list_of_tests = []  # list of tests to be collected
+collect_all_test_cases = False  # should we collect all test cases?
 
-collect_all_test_cases = False
-test_cases_dict = {}
-collected_tcs = []
-extended_log_output = False
+# test_cases_dict - dictionary, that stores information about collected tests.
+# For example,
+# test_cases_dict = {'Bar_ChartOptions_ChartTab_General':
+#                      {'com.SiemensXHQ.tests.ui.consolidated.charts.barchart.BarChartTest': ['testC1004, testC1005']}}
+test_cases_dict = {}  # dictionary, that stores information about collected tests.
+collected_tcs = []  # list of collected tests
+extended_log_output = False  # should we print additional information about collecting tests in a global xml file?
+python_version = 0  # version of the Python
 
 
 # --------------------------------------- functions ----------------------------------------
+def set_variables():
+    print("Python version:", str(sys.version_info[0]) + "." + str(sys.version_info[1]))
+    global python_version
+    python_version = sys.version_info[0] * 10 + sys.version_info[1]
+
+
 def parse_args():
     if len(sys.argv) > 1:
         global global_xml_path
@@ -45,7 +55,10 @@ def parse_args():
     print("Arguments:")
     print("path to XML:", global_xml_path)
     print("output file name:", output_file_name)
-    print("list of tests:", list_of_tests)
+    if collect_all_test_cases:
+        print("list of tests: all tests")
+    else:
+        print("list of tests:", list_of_tests)
 
 
 def verify_args():
@@ -147,7 +160,7 @@ def write_test_cases_dict_to_xml():
 
     output_file = open(output_file_name, "w+")
     output_file.write(xml_header)
-    if "Linux" == platform.system():
+    if python_version < 30:
         output_file.write(ElementTree.tostring(output_xml_tree, method="xml"))
     else:
         output_file.write(ElementTree.tostring(output_xml_tree, encoding="unicode", method="xml"))
@@ -191,10 +204,13 @@ def create_xml_tree(xml_tree, tc_dict, initial_prefix):
 
 def write_to_log(*strings):
     if extended_log_output:
-        print(*strings)
+        c_strings = [str(i) for i in strings]
+        print(" ".join(c_strings))
+        # print(*strings) - don't work in Python 2.x and earlier
 
 
 # ------------------------------------------ MAIN ------------------------------------------
+set_variables()
 parse_args()
 if verify_args():
     look_for_tests()
