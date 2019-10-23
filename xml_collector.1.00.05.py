@@ -51,6 +51,10 @@ def parse_args():
                     global list_of_tests
                     list_of_tests = sys.argv[3].split(",")
                     # map(str.strip, list_of_tests)
+                    if python_version < 30:
+                        list_of_tests = filter(None, list_of_tests)
+                    else:
+                        list_of_tests = list(filter(None, list_of_tests))
     print("-------------------------------------------------------------")
     print("Arguments:")
     print("path to XML: " + global_xml_path)
