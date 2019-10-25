@@ -7,9 +7,14 @@ from xml.etree import ElementTree
 # script accepts the following arguments
 # 1. path to the global xml
 # 2. name of the output file
-# 3. comma-separated list of tests or '*'
+# 3. list of tests or '*' or "__all". The List of tests may be comma-separated or space separated. If the list of tests
+#    is space separated, then you should enclose the parameter in quotation marks
+# 4. prefix for test cases names. If the name of test case isn't start with the prefix, script adds the prefix
+#    to the name of test cases specified in the 3-rd argument.
+#
 # E.g.:
 # xml_collector D:\TMP\consolidate\desktop\GlobalXML.xml D:\TMP\output\new_xml.xml testC375501,testC375502
+# xml_collector D:\TMP\consolidate\desktop\GlobalXML.xml new_xml.xml "C375501 C375502" test
 # xml_collector D:\TMP\consolidate\desktop\GlobalXML.xml D:\TMP\output\new_xml.xml *
 # xml_collector D:\TMP\consolidate\desktop\GlobalXML.xml D:\TMP\output\new_xml.xml __all
 
@@ -18,6 +23,7 @@ global_xml_path = "global.xml"  # path to the global xml file
 output_file_name = "output.xml"  # path to the output xml file
 list_of_tests = []  # list of tests to be collected
 collect_all_test_cases = False  # should we collect all test cases?
+test_cases_prefix = ""
 
 # test_cases_dict - dictionary, that stores information about collected tests.
 # For example,
@@ -37,6 +43,13 @@ def set_variables():
 
 
 def parse_args():
+    cmd_line = ""
+    for i, s in enumerate(sys.argv):
+        if i > 0:
+            cmd_line = cmd_line + " \"" + s + "\""
+        else:
+            cmd_line = s
+    print("Command line: " + cmd_line)
     if len(sys.argv) > 1:
         global global_xml_path
         global_xml_path = sys.argv[1]
@@ -44,17 +57,26 @@ def parse_args():
             global output_file_name
             output_file_name = sys.argv[2]
             if len(sys.argv) > 3:
+                global list_of_tests
                 if "*" == sys.argv[3] or "__all" == sys.argv[3]:
                     global collect_all_test_cases
                     collect_all_test_cases = True
                 else:
-                    global list_of_tests
-                    list_of_tests = sys.argv[3].split(",")
+                    arg_list_of_tests = sys.argv[3].replace(",", " ")
+                    list_of_tests = arg_list_of_tests.split()
                     # map(str.strip, list_of_tests)
-                    if python_version < 30:
-                        list_of_tests = filter(None, list_of_tests)
-                    else:
-                        list_of_tests = list(filter(None, list_of_tests))
+                    # if python_version < 30:
+                    #     list_of_tests = filter(None, list_of_tests)
+                    #  else:
+                    #     list_of_tests = list(filter(None, list_of_tests))
+                if len(sys.argv) > 4:
+                    if not collect_all_test_cases:
+                        global test_cases_prefix
+                        test_cases_prefix = sys.argv[4]
+                        for i, s in enumerate(list_of_tests):
+                            if not list_of_tests[i].startswith(test_cases_prefix):
+                                list_of_tests[i] = test_cases_prefix + list_of_tests[i]
+
     print("-------------------------------------------------------------")
     print("Arguments:")
     print("path to XML: " + global_xml_path)
@@ -63,13 +85,15 @@ def parse_args():
         print("list of tests: all tests")
     else:
         print("list of tests: " + str(list_of_tests))
+    if len(test_cases_prefix) > 0:
+        print("test cases names' prefix: " + test_cases_prefix)
 
 
 def verify_args():
     global list_of_tests
     if not os.path.exists(global_xml_path):
         print("Error: can't find a global xml file")
-        quit(101)
+        quit(111)
 
     try:
         _file = open(output_file_name, "w+")
@@ -77,11 +101,11 @@ def verify_args():
     except FileNotFoundError as e:
         print("Error: cant create an output file: " + output_file_name)
         print("Exception message: " + str(e))
-        quit(102)
+        quit(112)
 
     if not collect_all_test_cases and len(list_of_tests) == 0:
         print("Error: list of tests should be non-empty")
-        quit(103)
+        quit(113)
 
     return True
 
@@ -168,10 +192,14 @@ def write_test_cases_dict_to_xml():
         output_file.write(ElementTree.tostring(output_xml_tree, method="xml"))
     else:
         output_file.write(ElementTree.tostring(output_xml_tree, encoding="unicode", method="xml"))
-    if extended_log_output:
-        print("Test cases were successfully written to the file: " + output_file_name)
+    if len(collected_tcs) == 0:
+        print("Error: 0 test cases were written to the file: " + output_file_name)
+        quit(101)
     else:
-        print(str(len(collected_tcs)) + " test cases were successfully written to the file: " + output_file_name)
+        if extended_log_output:
+            print("Test cases were successfully written to the file: " + output_file_name)
+        else:
+            print(str(len(collected_tcs)) + " test cases were successfully written to the file: " + output_file_name)
 
 
 def create_xml_tree(xml_tree, tc_dict, initial_prefix):
